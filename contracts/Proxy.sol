@@ -34,7 +34,7 @@ contract Proxy {
         inputToken.safeApprove(allowanceTarget, amountInMax);
 
         (bool success, ) = callTarget.call(data);
-        console.log(success);
+        require(success);
 
         outputToken.safeTransfer(msg.sender, outputAmount);
 
@@ -53,7 +53,6 @@ contract Proxy {
         address allowanceTarget,
         address inputToken,
         address outputToken,
-        uint256 amountOut,
         uint256 amountOutMin,
         uint256 inputAmount
     ) external {
@@ -64,7 +63,8 @@ contract Proxy {
         inputToken.safeApprove(allowanceTarget, inputAmount);
 
         (bool success, ) = callTarget.call(data);
-        console.log(success);
+
+        require(success);
 
         outputToken.safeTransfer(msg.sender, amountOutMin);
 

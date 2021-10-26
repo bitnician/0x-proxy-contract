@@ -58,52 +58,9 @@ describe('Poc', function () {
     });
   });
 
-  it('exact output', async () => {
-    this.timeout(100000);
-    //https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&buyAmount=10000000000000000000
-
-    const inputToken = 'dai';
-    const outputToken = 'uni';
-    const outputTokenDecimals = 18;
-    const outputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(outputTokenDecimals)); //uni
-
-    const { data } = await axios.get(
-      `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&buyAmount=${+outputAmount}`
-    );
-
-    const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
-
-    console.log('diff', +guaranteedPrice - +price);
-    console.log('max slippage', ((+guaranteedPrice - +price) * +outputAmount) / 10 ** 18);
-
-    const amountIn = +outputAmount * +price;
-    const amountInMax = +outputAmount * +guaranteedPrice;
-    // const amountInMax = '284948206735872650710';
-    // console.log('amountInMax', amountInMax);
-    // console.log('+guaranteedPrice * 10 * 10 ** 18', +guaranteedPrice * 10 * 10 ** 18);
-    // console.log('+guaranteedPrice * +outputAmount', +guaranteedPrice * +outputAmount);
-
-    // console.log('guaranteedPrice');
-    // console.log('outputAmount', +outputAmount);
-    // console.log('outputAmount2', 10 * 10 ** 18);
-
-    await dai.connect(whale).approve(proxy.address, amountInMax.toString());
-
-    await proxy
-      .connect(whale)
-      .proxyCallExactOutput(
-        callData,
-        to,
-        allowanceTarget,
-        dai.address,
-        uni.address,
-        amountInMax.toString(),
-        outputAmount.toString()
-      );
-  });
-
   // it('exact output', async () => {
   //   this.timeout(100000);
+  //   //https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&buyAmount=10000000000000000000
 
   //   const inputToken = 'dai';
   //   const outputToken = 'uni';
@@ -114,16 +71,7 @@ describe('Poc', function () {
   //     `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&buyAmount=${+outputAmount}`
   //   );
 
-  //   // const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
-  //   const { data: callData } = data;
-
-  //   const price = '27.297079218458898107';
-  //   const guaranteedPrice = '27.570050010643487088';
-  //   const allowanceTarget = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
-  //   const to = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
-
-  //   console.log('diff', +guaranteedPrice - +price);
-  //   console.log('max slippage', ((+guaranteedPrice - +price) * +outputAmount) / 10 ** 18);
+  //   const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
 
   //   const amountIn = +outputAmount * +price;
   //   const amountInMax = +outputAmount * +guaranteedPrice;
@@ -143,35 +91,37 @@ describe('Poc', function () {
   //     );
   // });
 
-  // it('exact input', async () => {
-  //   this.timeout(100000);
-  //   // https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&sellAmount=10000000000000000000
-  //   const inputTokenDecimals = 18;
-  //   const inputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(inputTokenDecimals)); //dai
+  it('exact input', async () => {
+    this.timeout(100000);
 
-  //   const data =
-  //     '0xd9627aa400000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000008ac7230489e8000000000000000000000000000000000000000000000000000005192655fedc75b2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000006b175474e89094c44da98b954eedeac495271d0f0000000000000000000000001f9840a85d5af5bf1d1762f925bdaddc4201f984869584cd000000000000000000000000100000000000000000000000000000000000001100000000000000000000000000000000000000000000006ca78691266177db07';
+    const inputToken = 'dai';
+    const outputToken = 'uni';
+    const inputTokenDecimals = 18;
+    const inputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(inputTokenDecimals)); //dai
 
-  //   const price = '0.037107777312862893'; // price dai(input) in terms of uni(output)
-  //   const guaranteedPrice = '0.036736699539734264';
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&sellAmount=${+inputAmount}`
+    );
 
-  //   console.log('diff', +price - +guaranteedPrice);
-  //   console.log('max slippage', ((+price - +guaranteedPrice) * +inputAmount) / 10 ** 18);
+    // https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&sellAmount=10000000000000000000
 
-  //   const amountOut = +inputAmount * +price;
-  //   const amountOutMin = +inputAmount * +guaranteedPrice;
+    const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
 
-  //   await dai.connect(whale).approve(proxy.address, inputAmount.toString());
+    const amountOut = +inputAmount * +price;
+    const amountOutMin = +inputAmount * +guaranteedPrice;
 
-  //   await proxy
-  //     .connect(whale)
-  //     .proxyCallExactInput(
-  //       data,
-  //       dai.address,
-  //       uni.address,
-  //       amountOut.toString(),
-  //       amountOutMin.toString(),
-  //       inputAmount.toString()
-  //     );
-  // });
+    await dai.connect(whale).approve(proxy.address, inputAmount.toString());
+
+    await proxy
+      .connect(whale)
+      .proxyCallExactInput(
+        callData,
+        to,
+        allowanceTarget,
+        dai.address,
+        uni.address,
+        amountOutMin.toString(),
+        inputAmount.toString()
+      );
+  });
 });
