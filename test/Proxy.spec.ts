@@ -58,38 +58,37 @@ describe('Poc', function () {
     });
   });
 
-  // it('exact output', async () => {
-  //   this.timeout(100000);
-  //   //https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&buyAmount=10000000000000000000
+  it('exact output', async () => {
+    this.timeout(100000);
 
-  //   const inputToken = 'dai';
-  //   const outputToken = 'uni';
-  //   const outputTokenDecimals = 18;
-  //   const outputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(outputTokenDecimals)); //uni
+    const inputToken = 'dai';
+    const outputToken = 'uni';
+    const outputTokenDecimals = 18;
+    const outputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(outputTokenDecimals)); //uni
 
-  //   const { data } = await axios.get(
-  //     `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&buyAmount=${+outputAmount}`
-  //   );
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&buyAmount=${+outputAmount}`
+    );
 
-  //   const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
+    const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
 
-  //   const amountIn = +outputAmount * +price;
-  //   const amountInMax = +outputAmount * +guaranteedPrice;
+    const amountIn = +outputAmount * +price;
+    const amountInMax = +outputAmount * +guaranteedPrice;
 
-  //   await dai.connect(whale).approve(proxy.address, amountInMax.toString());
+    await dai.connect(whale).approve(proxy.address, amountInMax.toString());
 
-  //   await proxy
-  //     .connect(whale)
-  //     .proxyCallExactOutput(
-  //       callData,
-  //       to,
-  //       allowanceTarget,
-  //       dai.address,
-  //       uni.address,
-  //       amountInMax.toString(),
-  //       outputAmount.toString()
-  //     );
-  // });
+    await proxy
+      .connect(whale)
+      .proxyCallExactOutput(
+        callData,
+        to,
+        allowanceTarget,
+        dai.address,
+        uni.address,
+        amountInMax.toString(),
+        outputAmount.toString()
+      );
+  });
 
   it('exact input', async () => {
     this.timeout(100000);
@@ -102,8 +101,6 @@ describe('Poc', function () {
     const { data } = await axios.get(
       `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&sellAmount=${+inputAmount}`
     );
-
-    // https://api.0x.org/swap/v1/quote?buyToken=uni&sellToken=dai&sellAmount=10000000000000000000
 
     const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
 
