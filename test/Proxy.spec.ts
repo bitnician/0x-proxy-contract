@@ -66,7 +66,7 @@ describe('Poc', function () {
     const guaranteedPrice = '27.42326792627582341';
 
     console.log('diff', +guaranteedPrice - +price);
-    console.log('slippage', (+guaranteedPrice - +price) * +outputAmount);
+    console.log('slippage', ((+guaranteedPrice - +price) * +outputAmount) / 10 ** 18);
 
     const amountIn = +outputAmount * +price;
     const amountInMax = +outputAmount * +guaranteedPrice;
