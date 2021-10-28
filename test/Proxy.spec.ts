@@ -1,12 +1,14 @@
-import { Proxy, ERC20 } from '../typechain';
-import { expect } from 'chai';
-import { ethers, network } from 'hardhat';
-import { Provider } from '@ethersproject/providers';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { BigNumber } from 'ethers';
-import { data } from './shared';
-import axios from 'axios';
-describe('Poc', function () {
+import { Proxy, ERC20 } from "../typechain";
+import { expect } from "chai";
+import { ethers, network } from "hardhat";
+import { Provider } from "@ethersproject/providers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+// import { BigNumber } from 'ethers';
+import { BigNumber } from "bignumber.js";
+import { data } from "./shared";
+import axios from "axios";
+import { BN } from "bn.js";
+describe("Poc", function () {
   let proxy: Proxy,
     usdc: ERC20,
     usdt: ERC20,
@@ -17,65 +19,96 @@ describe('Poc', function () {
     whale: SignerWithAddress,
     treasury: SignerWithAddress,
     admin: SignerWithAddress,
-    zeroXAddress: string,
-    erc20Proxy: string;
+    zeroXAddress: string;
+
   before(async function () {
     this.timeout(100000);
     provider = ethers.provider;
     [treasury, admin] = await ethers.getSigners();
 
-    zeroXAddress = ethers.utils.getAddress('0xdef1c0ded9bec7f1a1670819833240f027b25eff');
-    erc20Proxy = ethers.utils.getAddress('0x95E6F48254609A6ee006F7D493c8e5fB97094ceF');
+    zeroXAddress = ethers.utils.getAddress(
+      "0xdef1c0ded9bec7f1a1670819833240f027b25eff"
+    );
 
-    const SeedFactory = await ethers.getContractFactory('ERC20');
-    seed = (await SeedFactory.deploy('Brokoli Seed', 'BRKS')) as ERC20;
+    const SeedFactory = await ethers.getContractFactory("ERC20");
+    seed = (await SeedFactory.deploy("Brokoli Seed", "BRKS")) as ERC20;
 
-    const ProxyFactory = await ethers.getContractFactory('Proxy');
-    proxy = (await ProxyFactory.deploy(treasury.address, seed.address)) as Proxy;
+    const ProxyFactory = await ethers.getContractFactory("Proxy");
+    proxy = (await ProxyFactory.deploy(
+      treasury.address,
+      seed.address
+    )) as Proxy;
 
-    const USDCFactory = await ethers.getContractFactory('ERC20');
-    usdc = USDCFactory.attach('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48') as ERC20;
+    const USDCFactory = await ethers.getContractFactory("ERC20");
+    usdc = USDCFactory.attach(
+      "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    ) as ERC20;
 
-    const USDTFactory = await ethers.getContractFactory('ERC20');
-    usdt = USDTFactory.attach('0xdac17f958d2ee523a2206206994597c13d831ec7') as ERC20;
+    const USDTFactory = await ethers.getContractFactory("ERC20");
+    usdt = USDTFactory.attach(
+      "0xdac17f958d2ee523a2206206994597c13d831ec7"
+    ) as ERC20;
 
-    const UniFactory = await ethers.getContractFactory('ERC20');
-    uni = UniFactory.attach('0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984') as ERC20;
+    const UniFactory = await ethers.getContractFactory("ERC20");
+    uni = UniFactory.attach(
+      "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984"
+    ) as ERC20;
 
-    const DaiFactory = await ethers.getContractFactory('ERC20');
-    dai = DaiFactory.attach('0x6B175474E89094C44Da98b954EedeAC495271d0F') as ERC20;
+    const DaiFactory = await ethers.getContractFactory("ERC20");
+    dai = DaiFactory.attach(
+      "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+    ) as ERC20;
 
     await network.provider.request({
-      method: 'hardhat_impersonateAccount',
-      params: ['0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503'],
+      method: "hardhat_impersonateAccount",
+      params: ["0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503"],
     });
 
-    whale = (await ethers.getSigner('0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503')) as SignerWithAddress;
+    whale = (await ethers.getSigner(
+      "0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503"
+    )) as SignerWithAddress;
 
     await admin.sendTransaction({
       to: whale.address,
-      value: ethers.utils.parseEther('100'),
+      value: ethers.utils.parseEther("100"),
     });
   });
 
-  it('exact output', async () => {
+  it("exact output: dai => uni", async function () {
     this.timeout(100000);
 
-    const inputToken = 'dai';
-    const outputToken = 'uni';
-    const outputTokenDecimals = 18;
-    const outputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(outputTokenDecimals)); //uni
+    const sellToken = "dai";
+    const buyToken = "uni";
+    const buyTokenDecimals = 18;
+    const outputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(buyTokenDecimals)
+    ); //uni
 
     const { data } = await axios.get(
-      `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&buyAmount=${+outputAmount}`
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${+outputAmount}`
     );
 
-    const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      buyAmount,
+    } = data;
 
-    const amountIn = +outputAmount * +price;
-    const amountInMax = +outputAmount * +guaranteedPrice;
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const bAmountBN = new BN(buyAmount);
+    let sellAmountMax = new BN(0);
 
-    await dai.connect(whale).approve(proxy.address, amountInMax.toString());
+    const multiplier = new BN("10").pow(new BN(buyTokenDecimals));
+    sellAmountMax = bAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      uniBuyAmount: bAmountBN.toString(),
+      daiSellAmount: sellAmountMax.toString(),
+    });
+
+    await dai.connect(whale).approve(proxy.address, sellAmountMax.toString());
 
     await proxy
       .connect(whale)
@@ -85,27 +118,142 @@ describe('Poc', function () {
         allowanceTarget,
         dai.address,
         uni.address,
-        amountInMax.toString(),
+        sellAmountMax.toString(),
+        outputAmount.toString()
+      );
+  });
+  it("exact output : usdc => uni", async function () {
+    this.timeout(100000);
+
+    const sellToken = "usdc";
+    const buyToken = "uni";
+    const buyTokenDecimals = 18;
+    const outputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(buyTokenDecimals)
+    ); //uni
+
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${+outputAmount}`
+    );
+
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      buyAmount,
+    } = data;
+
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const bAmountBN = new BN(buyAmount);
+    let sellAmountMax = new BN(0);
+
+    const multiplier = new BN("10").pow(new BN(buyTokenDecimals));
+    sellAmountMax = bAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      uniBuyAmount: bAmountBN.toString(),
+      usdcSellAmount: sellAmountMax.toString(),
+    });
+
+    await usdc.connect(whale).approve(proxy.address, sellAmountMax.toString());
+
+    await proxy
+      .connect(whale)
+      .proxyCallExactOutput(
+        callData,
+        to,
+        allowanceTarget,
+        usdc.address,
+        uni.address,
+        sellAmountMax.toString(),
+        outputAmount.toString()
+      );
+  });
+  it("exact output : uni => usdc", async function () {
+    this.timeout(100000);
+
+    const sellToken = "uni";
+    const buyToken = "usdc";
+    const buyTokenDecimals = 6;
+    const outputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(buyTokenDecimals)
+    ); //uni
+
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&buyAmount=${+outputAmount}`
+    );
+
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      buyAmount,
+    } = data;
+
+    const decimals = guaranteedPrice.split(".")[1]?.length || 0;
+
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const bAmountBN = new BN(buyAmount);
+    let sellAmountMax = new BN(0);
+
+    const multiplier = new BN("10").pow(new BN(buyTokenDecimals));
+    sellAmountMax = bAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      usdcBuyAmount: bAmountBN.toString(),
+      uniSellAmount: sellAmountMax.toString(),
+    });
+
+    await uni.connect(whale).approve(proxy.address, sellAmountMax.toString());
+
+    await proxy
+      .connect(whale)
+      .proxyCallExactOutput(
+        callData,
+        to,
+        allowanceTarget,
+        uni.address,
+        usdc.address,
+        sellAmountMax.toString(),
         outputAmount.toString()
       );
   });
 
-  it('exact input', async () => {
+  it("exact input, dai => uni", async function () {
     this.timeout(100000);
 
-    const inputToken = 'dai';
-    const outputToken = 'uni';
-    const inputTokenDecimals = 18;
-    const inputAmount = BigNumber.from(10).mul(BigNumber.from(10).pow(inputTokenDecimals)); //dai
+    const sellToken = "dai";
+    const buyToken = "uni";
+    const sellTokenDecimals = 18;
+    const inputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(sellTokenDecimals)
+    ); //dai
 
     const { data } = await axios.get(
-      `https://api.0x.org/swap/v1/quote?buyToken=${outputToken}&sellToken=${inputToken}&sellAmount=${+inputAmount}`
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
     );
 
-    const { price, guaranteedPrice, allowanceTarget, to, data: callData } = data;
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      sellAmount,
+    } = data;
 
-    const amountOut = +inputAmount * +price;
-    const amountOutMin = +inputAmount * +guaranteedPrice;
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const sAmountBN = new BN(sellAmount);
+    let buyAmountMin = new BN(0);
+
+    const multiplier = new BN("10").pow(new BN(sellTokenDecimals));
+    buyAmountMin = sAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      uniBuyAmount: buyAmountMin.toString(),
+      daiSellAmount: sAmountBN.toString(),
+    });
 
     await dai.connect(whale).approve(proxy.address, inputAmount.toString());
 
@@ -117,7 +265,104 @@ describe('Poc', function () {
         allowanceTarget,
         dai.address,
         uni.address,
-        amountOutMin.toString(),
+        buyAmountMin.toString(),
+        inputAmount.toString()
+      );
+  });
+  it("exact input, usdc => uni", async function () {
+    this.timeout(100000);
+
+    const sellToken = "usdc";
+    const buyToken = "uni";
+    const sellTokenDecimals = 6;
+    const inputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(sellTokenDecimals)
+    );
+
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
+    );
+
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      sellAmount,
+    } = data;
+
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const sAmountBN = new BN(sellAmount);
+    let buyAmountMin = new BN(0);
+
+    const multiplier = new BN("10").pow(new BN(sellTokenDecimals));
+    buyAmountMin = sAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      uniBuyAmount: buyAmountMin.toString(),
+      usdcSellAmount: sAmountBN.toString(),
+    });
+
+    await usdc.connect(whale).approve(proxy.address, inputAmount.toString());
+
+    await proxy
+      .connect(whale)
+      .proxyCallExactInput(
+        callData,
+        to,
+        allowanceTarget,
+        usdc.address,
+        uni.address,
+        buyAmountMin.toString(),
+        inputAmount.toString()
+      );
+  });
+  it("exact input, uni => usdc", async function () {
+    this.timeout(100000);
+
+    const sellToken = "uni";
+    const buyToken = "usdc";
+    const sellTokenDecimals = 18;
+
+    const inputAmount = new BigNumber(10).times(
+      new BigNumber(10).pow(sellTokenDecimals)
+    ); //uni
+
+    const { data } = await axios.get(
+      `https://api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
+    );
+
+    const {
+      guaranteedPrice,
+      allowanceTarget,
+      to,
+      data: callData,
+      sellAmount,
+    } = data;
+
+    const gPriceBN = new BN(guaranteedPrice.replace(".", ""));
+    const sAmountBN = new BN(sellAmount);
+    let buyAmountMin = new BN(0);
+
+    const multiplier = new BN("10").pow(new BN(sellTokenDecimals));
+    buyAmountMin = sAmountBN.mul(gPriceBN).div(multiplier);
+
+    console.log({
+      usdcBuyAmount: buyAmountMin.toString(),
+      uniSellAmount: sAmountBN.toString(),
+    });
+
+    await uni.connect(whale).approve(proxy.address, inputAmount.toString());
+
+    await proxy
+      .connect(whale)
+      .proxyCallExactInput(
+        callData,
+        to,
+        allowanceTarget,
+        uni.address,
+        usdc.address,
+        buyAmountMin.toString(),
         inputAmount.toString()
       );
   });

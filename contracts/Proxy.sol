@@ -34,13 +34,14 @@ contract Proxy {
         inputToken.safeApprove(allowanceTarget, amountInMax);
 
         (bool success, ) = callTarget.call(data);
-        require(success);
+        console.log("success", success);
 
         outputToken.safeTransfer(msg.sender, outputAmount);
 
         uint256 updatedBalance = IERC20(inputToken).balanceOf(address(this));
 
         uint256 excessSlippage = updatedBalance.sub(initialBalance);
+        console.log("ExactOutput excessSlippage", excessSlippage);
 
         inputToken.safeTransfer(treasury, excessSlippage);
 
@@ -63,8 +64,7 @@ contract Proxy {
         inputToken.safeApprove(allowanceTarget, inputAmount);
 
         (bool success, ) = callTarget.call(data);
-
-        require(success);
+        console.log("success", success);
 
         outputToken.safeTransfer(msg.sender, amountOutMin);
 
@@ -72,7 +72,9 @@ contract Proxy {
 
         uint256 excessSlippage = updatedBalance.sub(initialBalance);
 
-        inputToken.safeTransfer(treasury, excessSlippage);
+        console.log("ExactInput excessSlippage", excessSlippage);
+
+        outputToken.safeTransfer(treasury, excessSlippage);
 
         // IERC20(seed).mint(msg.sender, excessSlippage);
     }
