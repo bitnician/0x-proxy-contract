@@ -113,7 +113,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactOutput(
+      .exactOutput(
         callData,
         to,
         allowanceTarget,
@@ -161,7 +161,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactOutput(
+      .exactOutput(
         callData,
         to,
         allowanceTarget,
@@ -211,7 +211,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactOutput(
+      .exactOutput(
         callData,
         to,
         allowanceTarget,
@@ -260,7 +260,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactInput(
+      .exactInput(
         callData,
         to,
         allowanceTarget,
@@ -308,7 +308,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactInput(
+      .exactInput(
         callData,
         to,
         allowanceTarget,
@@ -357,7 +357,7 @@ describe("Poc", function () {
 
     await proxy
       .connect(whale)
-      .proxyCallExactInput(
+      .exactInput(
         callData,
         to,
         allowanceTarget,
