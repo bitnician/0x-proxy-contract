@@ -1,81 +1,109 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.6;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.9;
 
-import "hardhat/console.sol";
-import "./interfaces/IERC20.sol";
-import "./libraries/SafeMath.sol";
-import "./libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./ISeeder.sol";
 
-contract Proxy {
+contract Proxy0x is Ownable {
     using SafeMath for *;
-    using TransferHelper for address;
+    using SafeERC20 for IERC20;
 
-    address treasury;
-    address seed;
+    address public seeder;
 
-    constructor(address _treasury, address _seed) {
-        treasury = _treasury;
-        seed = _seed;
+    event Swapped(
+        address sender,
+        address inputToken,
+        address outputToken,
+        uint256 indexed excessSlippage
+    );
+
+    constructor(address _seeder) {
+        seeder = _seeder;
     }
 
-    function proxyCallExactOutput(
+    function setSeeder(address _seeder) external onlyOwner {
+        seeder = _seeder;
+    }
+
+    function exactOutput(
         bytes memory data,
         address callTarget,
         address allowanceTarget,
-        address inputToken,
-        address outputToken,
+        IERC20 inputToken,
+        IERC20 outputToken,
         uint256 amountInMax,
-        uint256 outputAmount
+        uint256 amountOut
     ) external {
         uint256 initialBalance = IERC20(inputToken).balanceOf(address(this));
 
         inputToken.safeTransferFrom(msg.sender, address(this), amountInMax);
-
         inputToken.safeApprove(allowanceTarget, amountInMax);
 
-        (bool success, ) = callTarget.call(data);
-        console.log("success", success);
+        (bool success, ) = callTarget.call(data); // solhint-disable-line avoid-low-level-calls
+        require(success, "call not successful");
 
-        outputToken.safeTransfer(msg.sender, outputAmount);
+        outputToken.safeTransfer(msg.sender, amountOut);
 
         uint256 updatedBalance = IERC20(inputToken).balanceOf(address(this));
-
         uint256 excessSlippage = updatedBalance.sub(initialBalance);
-        console.log("ExactOutput excessSlippage", excessSlippage);
 
-        inputToken.safeTransfer(treasury, excessSlippage);
+        if (excessSlippage > 0) {
+            inputToken.safeApprove(seeder, excessSlippage);
 
-        // IERC20(seed).mint(msg.sender, excessSlippage);
+            ISeeder(seeder).issueSeeds(
+                msg.sender,
+                address(inputToken),
+                excessSlippage
+            );
+        }
+
+        emit Swapped(
+            msg.sender,
+            address(inputToken),
+            address(outputToken),
+            excessSlippage
+        );
     }
 
-    function proxyCallExactInput(
+    function exactInput(
         bytes memory data,
         address callTarget,
         address allowanceTarget,
-        address inputToken,
-        address outputToken,
+        IERC20 inputToken,
+        IERC20 outputToken,
         uint256 amountOutMin,
-        uint256 inputAmount
+        uint256 amountIn
     ) external {
         uint256 initialBalance = IERC20(outputToken).balanceOf(address(this));
 
-        inputToken.safeTransferFrom(msg.sender, address(this), inputAmount);
+        inputToken.safeTransferFrom(msg.sender, address(this), amountIn);
+        inputToken.safeApprove(allowanceTarget, amountIn);
 
-        inputToken.safeApprove(allowanceTarget, inputAmount);
-
-        (bool success, ) = callTarget.call(data);
-        console.log("success", success);
+        (bool success, ) = callTarget.call(data); // solhint-disable-line avoid-low-level-calls
+        require(success, "call not successful");
 
         outputToken.safeTransfer(msg.sender, amountOutMin);
 
         uint256 updatedBalance = IERC20(outputToken).balanceOf(address(this));
-
         uint256 excessSlippage = updatedBalance.sub(initialBalance);
 
-        console.log("ExactInput excessSlippage", excessSlippage);
+        if (excessSlippage > 0) {
+            outputToken.safeApprove(seeder, excessSlippage);
 
-        outputToken.safeTransfer(treasury, excessSlippage);
+            ISeeder(seeder).issueSeeds(
+                msg.sender,
+                address(outputToken),
+                excessSlippage
+            );
+        }
 
-        // IERC20(seed).mint(msg.sender, excessSlippage);
+        emit Swapped(
+            msg.sender,
+            address(inputToken),
+            address(outputToken),
+            excessSlippage
+        );
     }
 }

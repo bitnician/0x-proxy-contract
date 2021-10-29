@@ -1,4 +1,4 @@
-import { Proxy, ERC20 } from "../typechain";
+import { Proxy0x, ERC20 } from "../typechain";
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import { Provider } from "@ethersproject/providers";
@@ -8,8 +8,9 @@ import { BigNumber } from "bignumber.js";
 import { data } from "./shared";
 import axios from "axios";
 import { BN } from "bn.js";
+import { Wallet } from "@ethersproject/wallet";
 describe("Poc", function () {
-  let proxy: Proxy,
+  let proxy: Proxy0x,
     usdc: ERC20,
     usdt: ERC20,
     uni: ERC20,
@@ -33,11 +34,11 @@ describe("Poc", function () {
     const SeedFactory = await ethers.getContractFactory("ERC20");
     seed = (await SeedFactory.deploy("Brokoli Seed", "BRKS")) as ERC20;
 
-    const ProxyFactory = await ethers.getContractFactory("Proxy");
+    const ProxyFactory = await ethers.getContractFactory("Proxy0x");
     proxy = (await ProxyFactory.deploy(
       treasury.address,
       seed.address
-    )) as Proxy;
+    )) as Proxy0x;
 
     const USDCFactory = await ethers.getContractFactory("ERC20");
     usdc = USDCFactory.attach(
