@@ -10,15 +10,15 @@ const {
 } = require("./artifacts/contracts/Proxy.sol/Proxy0x.json");
 
 const web3 = new Web3(
-  "https://ropsten.infura.io/v3/1b224486b8a1474cad650814061e0611"
+  "https://kovan.infura.io/v3/1b224486b8a1474cad650814061e0611"
 );
 
-const proxyAddress = "0x601eE82A318F8359015dd49FC439fAe72793D284";
-const daiAddress = "0xad6d458402f60fd3bd25163575031acdce07538d";
-const usdcAddress = "0x07865c6e87b9f70255377e024ace6630c1eaa37f";
+const proxyAddress = "0xB1D3f1E09a1f4f5120eF73612c04D22A22c63c4D";
+const daiAddress = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa";
+const usdcAddress = "0xb7a4F3E9097C08dA09517b5aB877F7a917224ede";
 
 const privateKey =
-  "1c791fd6789b42810f8f6ccd3da29fe488ec1baf7ce8be05cb5c24d6c1f6ebd7";
+  "28234ed7decda909b9e27d6417246fc3b8eba5eec6c57f22318cbb18511aff97";
 
 web3.eth.accounts.wallet.add("0x" + privateKey);
 const myWalletAddress = web3.eth.accounts.wallet[0].address;
@@ -28,18 +28,20 @@ const daiToken = new web3.eth.Contract(tokenAbi, daiAddress);
 const usdcToken = new web3.eth.Contract(tokenAbi, usdcAddress);
 
 async function main() {
-  const sellToken = "dai";
-  const buyToken = "usdc";
+  const sellToken = daiAddress;
+  const buyToken = usdcAddress;
   const sellTokenDecimals = 18;
 
-  const inputAmount = new BigNumber(10).times(
+  const inputAmount = new BigNumber(1).times(
     new BigNumber(10).pow(sellTokenDecimals)
   ); //uni
 
   const { data } = await axios.get(
-    `https://ropsten.api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
+    `https://kovan.api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
   );
-
+  console.log(
+    `https://kovan.api.0x.org/swap/v1/quote?buyToken=${buyToken}&sellToken=${sellToken}&sellAmount=${+inputAmount}`
+  );
   const {
     guaranteedPrice,
     allowanceTarget,
@@ -73,7 +75,7 @@ async function main() {
   );
 
   const proxyHash = await proxy.methods
-    .exactInput(
+    .exactSell(
       callData,
       to,
       allowanceTarget,
@@ -93,5 +95,5 @@ async function main() {
 }
 
 main()
-  .then((data) => console.log(data))
+  .then((data) => console.log())
   .catch((e) => console.log(e));
